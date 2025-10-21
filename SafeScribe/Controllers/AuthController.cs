@@ -60,7 +60,7 @@ namespace SafeScribe.Controllers
 
             return Ok(new { token });
         }
-        
+        /*
         [HttpPost("logout")]
         [Authorize]
         public IActionResult Logout()
@@ -74,5 +74,6 @@ namespace SafeScribe.Controllers
 
             return Ok(new { message = "Logout realizado com sucesso." });
         }
+        */
     }
 }

@@ -1,4 +1,5 @@
-﻿using SafeScribe.Application.Interfaces;
+﻿using System.IdentityModel.Tokens.Jwt;
+using SafeScribe.Application.Interfaces;
 
 namespace SafeScribe.Infrastructure.Middleware;
 
@@ -11,20 +12,35 @@ public class JwtBlacklistMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, ITokenBlacklistService blacklistService)
+    public async Task InvokeAsync(HttpContext context, ITokenBlacklistService tokenBlacklistService)
     {
-        var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+        var authHeader = context.Request.Headers["Authorization"].ToString();
 
-        if (!string.IsNullOrEmpty(token) && blacklistService.IsTokenBlacklisted(token))
+        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
         {
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsJsonAsync(new
+            var token = authHeader["Bearer ".Length..].Trim();
+
+            try
             {
-                message = "Token expirado ou inválido (logout realizado)."
-            });
-            return;
+                var jwtToken = new JwtSecurityTokenHandler().ReadJwtToken(token);
+                var jti = jwtToken.Id;
+
+                if (tokenBlacklistService.IsTokenBlacklisted(jti))
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    await context.Response.WriteAsync("Token inválido ou expirado (blacklist).");
+                    return; // interrompe a pipeline
+                }
+            }
+            catch
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsync("Token inválido.");
+                return;
+            }
         }
 
+        // Continua para os próximos middlewares
         await _next(context);
     }
 }

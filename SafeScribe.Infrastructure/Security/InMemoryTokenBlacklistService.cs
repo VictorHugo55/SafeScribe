@@ -6,8 +6,9 @@ namespace SafeScribe.Infrastructure.Security;
 public class InMemoryTokenBlacklistService : ITokenBlacklistService
 {
     private readonly ConcurrentDictionary<string, DateTime> _blacklist = new();
+    
 
-    public void AddToken(string token)
+    public void AddTokenToBlacklist(string token)
     {
         _blacklist[token] = DateTime.UtcNow;
     }

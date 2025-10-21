@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -54,11 +55,17 @@ public class Program
                         {
                             Type = ReferenceType.SecurityScheme,
                             Id = "Bearer"
-                        }
+                        },
+                        Scheme = "oauth2",
+                        Name = "Bearer",
+                        In = ParameterLocation.Header
                     },
-                    new string[] {}
+                    new List<string>()
                 }
             });
+            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            options.IncludeXmlComments(xmlPath);
         });
 
         
@@ -96,7 +103,8 @@ public class Program
                     ClockSkew = TimeSpan.Zero 
                 };
             });
-
+        
+        
         builder.Services.AddScoped<ITokenService, TokenService>();
         builder.Services.AddSingleton<ITokenBlacklistService, InMemoryTokenBlacklistService>();
         builder.Services.AddAuthorization();
@@ -114,10 +122,11 @@ public class Program
 
         app.UseHttpsRedirection();
         
+        app.UseAuthentication();
+        
         // ✅ Middleware de Blacklist precisa vir antes do UseAuthentication
         app.UseMiddleware<JwtBlacklistMiddleware>();
         
-        app.UseAuthentication();
         app.UseAuthorization();
 
 
